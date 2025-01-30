@@ -1,0 +1,23 @@
+{
+  "name": "aichatbot",
+  "version": "1.0.0",
+  "description": "Description\r This is an AI-powered chatbot built using Python-Flask and \"Groq API\". It maintains conversation history and provides intelligent responses.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sivaneshji/AI-Chatbot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sivaneshji/AI-Chatbot/issues"
+  },
+  "homepage": "https://github.com/Sivaneshji/AI-Chatbot#readme",
+  "dependencies": {
+    "convex": "^1.18.2"
+  }
+}
