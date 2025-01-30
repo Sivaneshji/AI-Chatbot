@@ -4,17 +4,14 @@ import logging
 from dotenv import load_dotenv
 from groq import Groq
 from flask_session import Session
-from convex import ConvexClient  # Import Convex
+from convex import ConvexClient  
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Retrieve API key from environment variables
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-CONVEX_URL = os.getenv('CONVEX_URL')  # Get your Convex deployment URL from .env
+CONVEX_URL = os.getenv('CONVEX_URL')  
 
 # Validate API Key
 if not GROQ_API_KEY:
@@ -25,18 +22,14 @@ if not CONVEX_URL:
     logging.critical("Convex URL is missing. Please set the CONVEX_URL in the .env file.")
     exit(1)
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Configure Flask session
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["SECRET_KEY"] = "supersecretkey"  # Change this for production security
+app.config["SECRET_KEY"] = "supersecretkey"  
 Session(app)
 
-# Initialize Groq client
 client = Groq(api_key=GROQ_API_KEY)
 
-# Initialize Convex client
 convex = ConvexClient(CONVEX_URL)
 
 @app.route('/')
@@ -50,20 +43,16 @@ def get_bot_response():
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
 
-    # Retrieve or initialize conversation history in session
     if 'conversation' not in session:
         session['conversation'] = [{"role": "system", "content": "You are a helpful AI assistant."}]
 
-    # Append user input to conversation history
     session['conversation'].append({"role": "user", "content": user_input})
 
     try:
         response_text = get_groq_response(session['conversation'])
 
-        # Append AI response to conversation history
         session['conversation'].append({"role": "assistant", "content": response_text})
 
-        # Store chat in Convex
         store_chat_in_convex(user_input, response_text)
 
         return jsonify({"response": response_text})
@@ -75,14 +64,14 @@ def get_groq_response(conversation):
     try:
         completion = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=conversation,  # Send full chat history
+            messages=conversation,  
             temperature=1,
             max_tokens=1024,
             top_p=1,
             stream=False
         )
 
-        return completion.choices[0].message.content  # Extract AI response
+        return completion.choices[0].message.content  
     
     except Exception as err:
         logging.error(f"An error occurred while communicating with Groq API: {err}")
