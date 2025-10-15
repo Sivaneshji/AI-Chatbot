@@ -1,24 +1,7 @@
 // Combined EasySystemQuill base with SBA (SA) additions.
 // Base Quill functionality is preserved; SBA features are layered on top.
 
-let getBotConfig, getBotUrls;
-try {
-  ({ getBotConfig, getBotUrls } = require("./lib/config"));
-} catch (e) {
-  console.warn("⚠️  Config module not found; using fallback EasySystem URLs");
-  getBotConfig = () => ({ botIds: [] });
-  getBotUrls = () => ({
-    sendMessage:
-      process.env.EASYSYSTEM_SEND_URL ||
-      "https://easysystemapiqa.staples.com/es/service/v1/kore/send-message",
-    saveMessage:
-      process.env.EASYSYSTEM_SAVE_URL ||
-      "https://easysystemapiqa.staples.com/es/service/v1/context-load/external-message",
-    contextLoad:
-      process.env.EASYSYSTEM_CONTEXT_URL ||
-      "https://easysystemapiqa.staples.com/es/service/v1/context-load",
-  });
-}
+const { getBotConfig, getBotUrls } = require("./lib/config");
 let ErrorHandler,
   CircuitBreaker,
   SessionManager,
