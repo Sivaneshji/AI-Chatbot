@@ -549,6 +549,22 @@ function handleEasySendError_Direct(tag, data, error, callback) {
 // EXPORTS (Base Quill + SBA)
 // =============================
 
+function isAgentHandoffMessage(text) {
+  if (!text) return false;
+  const t = String(text).toLowerCase();
+  // Common phrasing patterns that indicate agent handoff
+  const patterns = [
+    "transfer you to an attendant",
+    "transfer you to an agent",
+    "transfer you to one of our experts",
+    "get you over to one of our experts",
+    "connect you to an agent",
+    "connecting you to an agent",
+    "agent handoff",
+  ];
+  return patterns.some((p) => t.includes(p));
+}
+
 module.exports = {
   botId: botConfig.botIds,
   botName: botName,
@@ -709,6 +725,16 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
     try {
       let session_owner = data.context.session.UserSession.owner;
+      const messageText = data && data.message;
+      // If this is the explicit handoff message, escalate immediately
+      if (isAgentHandoffMessage(messageText)) {
+        data.agent_transfer = true;
+        if (data?.context?.session?.BotUserSession) {
+          data.context.session.BotUserSession.transfer = true;
+        }
+        data.context.session.UserSession.owner = "kore";
+        return sdk.sendBotMessage(data, callback);
+      }
       // If transfer flagged, force owner kore and re-emit agent transfer on bot messages
       if (data?.context?.session?.BotUserSession?.transfer === true) {
         data.agent_transfer = true;
