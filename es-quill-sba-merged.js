@@ -831,6 +831,12 @@ module.exports = {
 
       const integName = webhookMap[componentName];
 
+      // Initialize per-conversation guard to avoid re-processing the same webhook repeatedly
+      const bus = data?.context?.session?.BotUserSession || {};
+      if (!bus.esHandledHooks) {
+        data.context.session.BotUserSession.esHandledHooks = {};
+      }
+
       // Helper to ACK once (only for SCRIPT_MODE)
       const ack = (d = data) => {
         d.status = "success";
@@ -876,12 +882,16 @@ module.exports = {
           return;
         }
 
-        // Direct-send: follow Quill/SBA pattern — do not ACK here; send messages directly
+        // Direct-send: ACK immediately to prevent timeouts, then run integration once
+        if (data.context.session.BotUserSession.esHandledHooks[componentName]) {
+          return ack();
+        }
+        data.context.session.BotUserSession.esHandledHooks[componentName] = true;
+        ack();
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
               if (err) console.error(`${integName} integration error:`, err);
-              // no ack
             });
           });
         return;
