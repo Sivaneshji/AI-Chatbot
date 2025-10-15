@@ -851,69 +851,8 @@ module.exports = {
         return callback(null, d);
       };
 
-      // Existing Quill handling for easySystemHook (preserved)
+      // SBA-only behavior
       if (
-        componentName === "easySystemHook" &&
-        data.context.session.BotUserSession.businessUnit === "Q"
-      ) {
-        console.log("Quill Business Unit");
-        contextData.entityMap =
-          data.context.session.BotUserSession.entityPayload;
-
-        safeEasySystemCall(
-          "easysystem-context-api",
-          contextUrl,
-          contextData,
-          data,
-          callback,
-          correlationId,
-          (response, data, callback) => {
-            console.log(
-              "✅ Context updated for conversationId " +
-                contextData.externalConversationId
-            );
-          }
-        )
-          .then(() => {
-            // Only runs AFTER safeEasySystemCall completes successfully
-            integrations.package_tracking_handover(data, callback);
-          })
-          .catch((err) => {
-            console.error(
-              "❌ Failed to update context before package tracking:",
-              err?.message || err
-            );
-            triggerAgentTransfer(
-              data,
-              callback,
-              "Please hold while I transfer you to an agent."
-            );
-          });
-        return;
-      } else if (
-        componentName === "easySystemHook" &&
-        data.context.session.BotUserSession.businessUnit === "C"
-      ) {
-        console.log("DOTCOM Business Unit");
-        contextData.entityMap =
-          data.context.session.BotUserSession.entityPayload;
-
-        safeEasySystemCall(
-          "easysystem-context-api",
-          contextUrl,
-          contextData,
-          data,
-          callback,
-          (response, data, callback) => {
-            console.log(
-              "Context updated for conversationId " +
-                contextData.externalConversationId
-            );
-            integrations.package_tracking_handover(data, callback);
-          }
-        );
-        return;
-      } else if (
         componentName === "easySystemHook" &&
         data.context.session.BotUserSession.businessUnit === "SA"
       ) {
@@ -959,7 +898,7 @@ module.exports = {
         return;
       }
 
-      // Default ACK when nothing to do
+      // Default ACK when nothing to do (SBA-only)
       return ack();
     } catch (error) {
       enhancedLogger.error(
