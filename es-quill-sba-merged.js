@@ -557,8 +557,10 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
 
     try {
-      // If a transfer is already flagged, ensure owner is kore and bypass ES
+      // If a transfer is already flagged, ensure owner is kore and re-emit agent transfer
       if (data?.context?.session?.BotUserSession?.transfer === true) {
+        data.agent_transfer = true;
+        data.context.session.BotUserSession.transfer = true;
         data.context.session.UserSession.owner = "kore";
         return sdk.sendBotMessage(data, callback);
       }
@@ -705,8 +707,10 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
     try {
       let session_owner = data.context.session.UserSession.owner;
-      // If transfer flagged, force owner kore and send bot message once
+      // If transfer flagged, force owner kore and re-emit agent transfer on bot messages
       if (data?.context?.session?.BotUserSession?.transfer === true) {
+        data.agent_transfer = true;
+        data.context.session.BotUserSession.transfer = true;
         data.context.session.UserSession.owner = "kore";
         return sdk.sendBotMessage(data, callback);
       }
