@@ -824,18 +824,12 @@ module.exports = {
         MissingHook: "missing_item",
       };
 
-      const SCRIPT_MODE = new Set([
-        "package_tracking_handover",
-        "Check_Return",
-      ]);
+      // Only these are ACK-based (Script node will render)
+      const SCRIPT_MODE = new Set(["package_tracking_handover", "Check_Return"]);
 
       const integName = webhookMap[componentName];
 
-      // Initialize per-conversation guard to avoid re-processing the same webhook repeatedly
-      const bus = data?.context?.session?.BotUserSession || {};
-      if (!bus.esHandledHooks) {
-        data.context.session.BotUserSession.esHandledHooks = {};
-      }
+      // No per-conversation guards; follow Quill pattern
 
       // Helper to ACK once (only for SCRIPT_MODE)
       const ack = (d = data) => {
@@ -882,12 +876,7 @@ module.exports = {
           return;
         }
 
-        // Direct-send: ACK immediately to prevent timeouts, then run integration once
-        if (data.context.session.BotUserSession.esHandledHooks[componentName]) {
-          return ack();
-        }
-        data.context.session.BotUserSession.esHandledHooks[componentName] = true;
-        ack();
+        // Direct-send: follow Quill base — do not ACK; integration will send messages
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
