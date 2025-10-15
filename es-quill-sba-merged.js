@@ -536,10 +536,8 @@ function handleEasySendOutcome_Direct(tag, data, responseData, callback) {
 
   if (responseData?.transfer) {
     data.context.session.BotUserSession.transfer = true;
-    data.agent_transfer = true;
-    data.context.session.UserSession.owner = "kore";
     console.log(`[${tag}] First message is agent transfer — escalating.`);
-    return sdk.sendBotMessage(data, callback);
+    return triggerAgentTransfer(data, callback, responseData?.text || data.message);
   }
 
   if (responseData?.endConversation) {
@@ -724,6 +722,11 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
     try {
       let session_owner = data.context.session.UserSession.owner;
+      // If transfer flagged, force owner kore and send bot message once
+      if (data?.context?.session?.BotUserSession?.transfer === true) {
+        data.context.session.UserSession.owner = "kore";
+        return sdk.sendBotMessage(data, callback);
+      }
       if (
         !data.context.session.BotUserSession.businessUnit ||
         data.context.session.BotUserSession.businessUnit === null ||
