@@ -522,6 +522,12 @@ function handleEasySendOutcome_Direct(tag, data, responseData, callback) {
   if (responseData?.transfer) {
     data.context.session.BotUserSession.transfer = true;
     console.log(`[${tag}] First message is agent transfer — escalating.`);
+    if (data._via_webhook) {
+      // In webhook context, don't send messages here; just flag and return
+      data.agent_transfer = true;
+      data.context.session.UserSession.owner = "kore";
+      return callback(null, data);
+    }
     return triggerAgentTransfer(data, callback, handoffMsg);
   }
 
@@ -530,6 +536,11 @@ function handleEasySendOutcome_Direct(tag, data, responseData, callback) {
     data.context.session.UserSession.owner = "kore";
   }
 
+  if (data._via_webhook) {
+    // For webhook, return control with updated state; messaging should be done by dialog
+    processEasySystemResponse(data, responseData);
+    return callback(null, data);
+  }
   processEasySystemResponse(data, responseData);
   return sdk.sendUserMessage(data, callback);
 }
@@ -902,12 +913,12 @@ module.exports = {
           return;
         }
 
-        // Direct-send: run integration, then ACK once it finishes
+        // Direct-send: keep webhook ACK immediate to avoid platform loops
+        ack();
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
               if (err) console.error(`${integName} integration error:`, err);
-              return ack();
             });
           });
         return;
