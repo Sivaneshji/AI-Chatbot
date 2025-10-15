@@ -516,11 +516,13 @@ function handleEasySendOutcome_Direct(tag, data, responseData, callback) {
   console.log("Transfer to agent =", responseData?.transfer);
 
   data.message = responseData?.text || "";
+  // Always pass an explicit agent handoff message if transfer
+  const handoffMsg = responseData?.text || "Please hold while I transfer you to an agent.";
 
   if (responseData?.transfer) {
     data.context.session.BotUserSession.transfer = true;
     console.log(`[${tag}] First message is agent transfer — escalating.`);
-    return triggerAgentTransfer(data, callback, responseData?.text || data.message);
+    return triggerAgentTransfer(data, callback, handoffMsg);
   }
 
   if (responseData?.endConversation) {
@@ -874,12 +876,12 @@ module.exports = {
           return;
         }
 
-        // Direct-send: ACK immediately to avoid webhook timeouts, then fire messaging
-        ack();
+        // Direct-send: run integration, then ACK once it finishes
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
               if (err) console.error(`${integName} integration error:`, err);
+              return ack();
             });
           });
         return;
