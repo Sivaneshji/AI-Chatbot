@@ -554,6 +554,12 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
 
     try {
+      // If a transfer is already flagged, ensure owner is kore and bypass ES
+      if (data?.context?.session?.BotUserSession?.transfer === true) {
+        data.context.session.UserSession.owner = "kore";
+        return sdk.sendBotMessage(data, callback);
+      }
+
       let session_owner = data.context.session.UserSession.owner;
       if (
         !data.context.session.BotUserSession.businessUnit ||
@@ -887,24 +893,20 @@ module.exports = {
         data.context.session.BotUserSession.businessUnit === "SA"
       ) {
         console.log("SBA Business Unit");
-        contextData.entityMap =
-          data.context.session.BotUserSession.entityPayload;
-
-        safeEasySystemCall(
-          "easysystem-context-api",
-          contextUrl,
-          contextData,
-          data,
-          callback,
-          (response, data, callback) => {
-            console.log(
-              "Context updated for conversationId " +
-                contextData.externalConversationId
-            );
-            integrations.package_tracking_handover(data, callback);
-          }
-        );
-        return;
+        // Use SBA-style Script-mode handling to avoid double-call
+        data._via_webhook = true;
+        sendContextToEasySystem(data)
+          .finally(() => {
+            integrations.package_tracking_handover(data, (err, updated) => {
+              if (err)
+                console.error("package_tracking_handover integration error:", err);
+              // ACK exactly once; Script node will render
+              updated = updated || data;
+              updated.status = "success";
+              return sdk.sendWebhookResponse(updated, callback);
+            });
+          });
+        return; 
       }
 
       // SBA additional component handlers (additive)
