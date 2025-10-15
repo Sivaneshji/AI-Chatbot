@@ -536,11 +536,8 @@ function handleEasySendOutcome_Direct(tag, data, responseData, callback) {
     data.context.session.UserSession.owner = "kore";
   }
 
-  if (data._via_webhook) {
-    // For webhook, return control with updated state; messaging should be done by dialog
-    processEasySystemResponse(data, responseData);
-    return callback(null, data);
-  }
+  // For webhook context we still allow direct-send integrations to push messages,
+  // matching Quill behavior for direct flows.
   processEasySystemResponse(data, responseData);
   return sdk.sendUserMessage(data, callback);
 }
@@ -560,22 +557,6 @@ function handleEasySendError_Direct(tag, data, error, callback) {
 // EXPORTS (Base Quill + SBA)
 // =============================
 
-function isAgentHandoffMessage(text) {
-  if (!text) return false;
-  const t = String(text).toLowerCase();
-  // Common phrasing patterns that indicate agent handoff
-  const patterns = [
-    "transfer you to an attendant",
-    "transfer you to an agent",
-    "transfer you to one of our experts",
-    "get you over to one of our experts",
-    "connect you to an agent",
-    "connecting you to an agent",
-    "agent handoff",
-  ];
-  return patterns.some((p) => t.includes(p));
-}
-
 module.exports = {
   botId: botConfig.botIds,
   botName: botName,
@@ -586,13 +567,6 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
 
     try {
-      // If a transfer is already flagged, ensure owner is kore and re-emit agent transfer
-      if (data?.context?.session?.BotUserSession?.transfer === true) {
-        data.agent_transfer = true;
-        data.context.session.BotUserSession.transfer = true;
-        data.context.session.UserSession.owner = "kore";
-        return sdk.sendBotMessage(data, callback);
-      }
 
       let session_owner = data.context.session.UserSession.owner;
       if (
@@ -736,20 +710,9 @@ module.exports = {
     const correlationId = enhancedLogger.generateCorrelationId();
     try {
       let session_owner = data.context.session.UserSession.owner;
-      const messageText = data && data.message;
-      // If this is the explicit handoff message, escalate immediately
-      if (isAgentHandoffMessage(messageText)) {
-        data.agent_transfer = true;
-        if (data?.context?.session?.BotUserSession) {
-          data.context.session.BotUserSession.transfer = true;
-        }
-        data.context.session.UserSession.owner = "kore";
-        return sdk.sendBotMessage(data, callback);
-      }
-      // If transfer flagged, force owner kore and re-emit agent transfer on bot messages
+      // If transfer already flagged, emit escalation once and do not proceed with normal flow
       if (data?.context?.session?.BotUserSession?.transfer === true) {
         data.agent_transfer = true;
-        data.context.session.BotUserSession.transfer = true;
         data.context.session.UserSession.owner = "kore";
         return sdk.sendBotMessage(data, callback);
       }
@@ -913,12 +876,12 @@ module.exports = {
           return;
         }
 
-        // Direct-send: keep webhook ACK immediate to avoid platform loops
-        ack();
+        // Direct-send: follow Quill/SBA pattern — do not ACK here; send messages directly
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
               if (err) console.error(`${integName} integration error:`, err);
+              // no ack
             });
           });
         return;
