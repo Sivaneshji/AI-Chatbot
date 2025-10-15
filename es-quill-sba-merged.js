@@ -941,18 +941,18 @@ module.exports = {
             .finally(() => {
               integrations[integName](data, (err, updated) => {
                 if (err) console.error(`${integName} integration error:`, err);
-                return ack(updated || data); // ACK exactly once
+                return ack(updated || data); // ACK exactly once after stash
               });
             });
           return;
         }
 
-        // Direct-send: no ACK; integration will send message immediately
+        // Direct-send: ACK immediately to avoid webhook timeouts, then fire messaging
+        ack();
         sendContextToEasySystem(data)
           .finally(() => {
             integrations[integName](data, (err, _updated) => {
               if (err) console.error(`${integName} integration error:`, err);
-              return; // no webhook ACK here
             });
           });
         return;
