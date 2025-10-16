@@ -238,7 +238,8 @@ async function safeMessageSave(
         },
         cid
       );
-      if (typeof errorCallback === "function") errorCallback();
+      if (typeof errorCallback === "function") errorCallback(new Error("CIRCUIT_OPEN"));
+      return; // do not proceed when breaker is open
     }
     await apiClient.post(url, messageSaveData, {
       headers: {
@@ -678,11 +679,11 @@ module.exports = {
               );
             },
             (error) => {
-              console.error(
-                "Error updating easysystem context:",
-                error.response ? error.response.data : error.message
-              );
-            }
+            console.error(
+              "Error updating easysystem context:",
+              (error && error.response && error.response.data) || error?.message || error
+            );
+          }
           );
         }
         return sdk.sendBotMessage(data, callback);
@@ -766,7 +767,7 @@ module.exports = {
           (error) => {
             console.error(
               "Error updating easysystem context:",
-              error.response ? error.response.data : error.message
+              (error && error.response && error.response.data) || error?.message || error
             );
           }
         );
