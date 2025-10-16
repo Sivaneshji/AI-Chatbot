@@ -831,12 +831,9 @@ module.exports = {
 
       // No per-conversation guards; follow Quill pattern
 
-      // Helper to ACK once (only for SCRIPT_MODE)
+      // Helper to ACK once (always via callback; sdk.sendWebhookResponse may not exist)
       const ack = (d = data) => {
         d.status = "success";
-        if (typeof sdk.sendWebhookResponse === "function") {
-          return sdk.sendWebhookResponse(d, callback);
-        }
         return callback(null, d);
       };
 
